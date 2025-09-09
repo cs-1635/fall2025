@@ -1,4 +1,4 @@
-# Dart Async Mini-Lesson Pack (Student Version)
+# Dart Async Mini-Lesson Pack
 
 This set of files and slides will help explain how Dart handles asynchronous programming step by step.  They are to be used as part of Lecture 1.3 in CS 1635.
 
