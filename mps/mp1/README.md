@@ -29,7 +29,7 @@ Your task is to **move these operations onto background isolates** using Flutter
 ## Read the Full Assignment
 This README is only a quick overview.  
 
-‼️‼️‼️‼️ Please read the **full assignment handout** (provided as a PDF document) for:
+‼️‼️‼️‼️ Please read the **[full assignment handout](MP1.pdf)** (provided as a PDF document) for:
 - A detailed tour of the provided code,
 - Specific tasks and expectations,
 - The full grading rubric (100 points, with partial credit for each step).
