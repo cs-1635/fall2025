@@ -71,10 +71,7 @@ class TitleSection extends StatelessWidget {
             ),
           ),
           /*3*/
-          // #docregion icon
-          Icon(Icons.star, color: Colors.red[500]),
-          // #enddocregion icon
-          const Text('41'),
+          const FavoriteWidget(),
         ],
       ),
     );
@@ -177,7 +174,7 @@ class FavoriteWidget extends StatefulWidget {
 class _FavoriteWidgetState extends State<FavoriteWidget> {
   // #enddocregion favorite-state-build
   bool _isFavorited = true;
-  int _favoriteCount = 41;
+  int _favoriteCount = 9;
   // #enddocregion favorite-state-fields
 
   // #docregion toggle-favorite
@@ -209,7 +206,10 @@ class _FavoriteWidgetState extends State<FavoriteWidget> {
                 ? const Icon(Icons.star)
                 : const Icon(Icons.star_border)),
             color: Colors.red[500],
-            onPressed: _toggleFavorite,
+            onPressed: () {
+              debugPrint('pressed');
+              _toggleFavorite();
+            },
           ),
         ),
         SizedBox(width: 18, child: SizedBox(child: Text('$_favoriteCount'))),
