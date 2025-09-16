@@ -35,7 +35,9 @@ class BigJsonApp extends StatelessWidget {
       showPerformanceOverlay: false,
       theme: MacosThemeData.light(),
       darkTheme: MacosThemeData.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: defaultTargetPlatform == TargetPlatform.macOS
+        ? ThemeMode.system
+        : ThemeMode.dark,
       home: const HomePage(),
     );
   }
