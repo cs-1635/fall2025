@@ -35,9 +35,7 @@ class BigJsonApp extends StatelessWidget {
       showPerformanceOverlay: false,
       theme: MacosThemeData.light(),
       darkTheme: MacosThemeData.dark(),
-      themeMode: defaultTargetPlatform == TargetPlatform.macOS
-        ? ThemeMode.system
-        : ThemeMode.dark,
+      themeMode: ThemeMode.system,
       home: const HomePage(),
     );
   }
@@ -84,7 +82,7 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  String generateJson() {
+  Future<String> generateJson() async {
     setState(() {
       _busy = true;
       _status = 'Generating…';
@@ -103,7 +101,8 @@ class _HomePageState extends State<HomePage> {
 
 
       if(_parseGenUsingCompute) {
-        showErrorDialog(context, "generate on compute not implemented yet");
+        bigJson = await compute(fakeExternalGenerateBigJson, count);
+        
       }
       else {
         bigJson = fakeExternalGenerateBigJson(count);
@@ -138,7 +137,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   // YOU WILL NEED TO UPDATE THIS METHOD TO BE ASYNC AWARE
-  void parseJson({String? overrideRaw})  {
+  Future<void> parseJson({String? overrideRaw}) async {
     final sw = Stopwatch()
       ..start();
     try {
@@ -162,8 +161,7 @@ class _HomePageState extends State<HomePage> {
       final parsed;
 
       if(_parseGenUsingCompute) {
-        showErrorDialog(context, "parse on compute not implemented yet");
-        parsed = null;
+        parsed = await compute(fakeExternalParseJson, raw);
       }
       else {
         parsed = fakeExternalParseJson(raw);
@@ -218,15 +216,14 @@ class _HomePageState extends State<HomePage> {
                       child: PushButton(
                         onPressed: _busy
                             ? null
-                            : () {
+                            : () async {
                                 try {
 
                                     // YOU WILL NEED TO UPDATE THIS CODE TO BE ASYNC AWARE
                                     // SEE DOCUMENTATION ON 'THEN' FOR ORDERED TASKS
                                     // https://dart.dev/libraries/dart-async
-
-                                    String rawJson = generateJson();
-                                    parseJson(overrideRaw: rawJson);
+                                    String rawJson= await generateJson();
+                                    await parseJson(overrideRaw: rawJson);
                                 } catch (e) {
                                   print(
                                       'Error during generation or parsing: $e');
