@@ -60,6 +60,11 @@ class DemoMenuPage extends StatelessWidget {
         subtitle: 'VM owns stream lifecycle; UI consumes it',
         builder: (_) => const StreamProviderVmPage(),
       ),
+      _DemoItem(
+        title: '7) ProxyProvider',
+        subtitle: 'Build a value from other providers (reacts to changes)',
+        builder: (_) => const ProxyProviderPage(),
+      ),
     ];
 
     return Scaffold(
@@ -504,6 +509,164 @@ class StreamProviderVmPage extends StatelessWidget {
     );
   }
 }
+
+
+// ---------------------------------------------------------------------------
+// 7) ProxyProvider — derive a value from other providers
+// ---------------------------------------------------------------------------
+
+/// Simple auth view-model. When `token` changes, dependents should update.
+class AuthVM extends ChangeNotifier {
+  String? _token;
+  String? get token => _token;
+  bool get isLoggedIn => _token != null;
+
+  Future<void> login() async {
+    // Fake a login delay and produce a token
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    _token = 'fake.jwt.token.${DateTime.now().millisecondsSinceEpoch}';
+    notifyListeners();
+  }
+
+  void logout() {
+    _token = null;
+    notifyListeners();
+  }
+}
+
+/// An API client that needs both the base URL (from AppConfig) and the current
+/// auth token (from AuthVM). We keep it as a single long-lived instance whose
+/// fields are updated by ProxyProvider to avoid recreating clients constantly.
+class ApiClient {
+  String _baseUrl = '';
+  String? _token;
+
+  void configure({required String baseUrl, required String? token}) {
+    _baseUrl = baseUrl;
+    _token = token;
+  }
+
+  String get baseUrl => _baseUrl;
+  String? get token => _token;
+
+  /// Fake "GET" call that just returns a string describing the request.
+  Future<String> get(String path) async {
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    final authHeader = _token == null ? 'none' : 'Bearer ${_token!.substring(0, 10)}…';
+    return 'GET $_baseUrl$path\nAuthorization: $authHeader';
+  }
+}
+
+class ProxyProviderPage extends StatelessWidget {
+  const ProxyProviderPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        // (Re)use the AppConfig from your earlier demo, or provide a fresh one here:
+        Provider<AppConfig>(
+          create: (_) => const AppConfig(
+            appName: 'Provider Demos',
+            apiBaseUrl: 'https://api.example.com',
+          ),
+        ),
+        ChangeNotifierProvider<AuthVM>(create: (_) => AuthVM()),
+
+        // Create one ApiClient and keep it; update it whenever AppConfig/AuthVM change.
+        ProxyProvider2<AppConfig, AuthVM, ApiClient>(
+          // Create a single instance once:
+          create: (_) => ApiClient(),
+          // Update is called whenever AppConfig or AuthVM change.
+          update: (context, cfg, auth, client) {
+            client ??= ApiClient();
+            client.configure(baseUrl: cfg.apiBaseUrl, token: auth.token);
+            return client;
+          },
+        ),
+      ],
+      child: const _ProxyBody(),
+    );
+  }
+}
+
+class _ProxyBody extends StatelessWidget {
+  const _ProxyBody();
+
+  @override
+  Widget build(BuildContext context) {
+    final cfg = context.read<AppConfig>(); // immutable, read once
+    final auth = context.watch<AuthVM>();  // watch to repaint login state
+    final api  = context.watch<ApiClient>(); // watch to reflect latest config/token
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('ProxyProvider')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('App: ${cfg.appName}', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text('ApiClient.baseUrl: ${api.baseUrl}'),
+            Text('Auth token present: ${api.token != null}'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: auth.isLoggedIn ? null : () => auth.login(),
+                  icon: const Icon(Icons.login),
+                  label: const Text('Login (sets token)'),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: auth.isLoggedIn ? () => auth.logout() : null,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout (clears token)'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () async {
+                final result = await api.get('/profile');
+                // Show the "request" we made with current token/baseUrl
+                if (context.mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('ApiClient GET'),
+                      content: Text(result),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+                      ],
+                    ),
+                  );
+                }
+              },
+              child: const Text('Call api.get("/profile")'),
+            ),
+            const SizedBox(height: 24),
+            const _CodeHint(
+              lines: [
+                'ProxyProvider2<AppConfig, AuthVM, ApiClient>',
+                '• create: (_) => ApiClient()  // single instance',
+                '• update: (ctx, cfg, auth, client) {',
+                '    client.configure(baseUrl: cfg.apiBaseUrl, token: auth.token);',
+                '    return client;',
+                '  }',
+                '',
+                'Changes in AppConfig/AuthVM automatically refresh ApiClient.',
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 
 // ---------------------------------------------------------------------------
 // Shared UI helpers
