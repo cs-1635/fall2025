@@ -1,16 +1,16 @@
-# flutter_dev_example
+# CS 1635/2035 — Interface Design Methodology (Fall 2025)
 
-A new Flutter project.
+This course will introduce concepts and common practices for building software for user interfaces. Concepts will connect across input, visual layout techniques, and software patterns for responsive user interaction with a focus on mobile platforms (web and native). Emergent interface concepts will also be explored while building upon the course’s software foundation. This course is targeted for students who desire skills in front-end development, interface design and software prototyping, and user experience engineering.
 
-## Getting Started
+## Learning Objectives
+After taking this course, the students will be able to:
+- Create basic design concepts of modern user interfaces
+- Understand software frameworks and programming paradigms for interactive computing
+- Develop working knowledge of the Flutter UI framework (and by abstraction other modern MVVM frameworks)
+- Develop working knowledge of modern UI elements information organization
+- Understand concepts of modern UI interaction techniques and mechanisms of navigation and layout
+- Develop the ability to create working UIs for mobile and web platforms
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## About
+Course hub for programming examples.  All other course materials on Pitt Canvas site for course.
