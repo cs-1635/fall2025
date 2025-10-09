@@ -1,75 +1,155 @@
-# api_integration
-
-A Flutter example that demonstrates **API integration + Provider + MVVM** using the **Launch Library 2 (LL2) v2.3.0** public API.
+# 🚀 `api_integration_firebase`
+A Flutter example demonstrating **API integration + Provider + MVVM + Firebase** using the **Launch Library 2 (LL2) v2.3.0** public API.
 
 ---
 
 ## Overview
-- **Goal:** Fetch a list of upcoming space launches, show details, and lazy-load rocket configuration.
-- **Patterns:** MVVM with a **Repository** boundary and **Provider** for dependency injection/state.
-- **Why:** Keep networking and JSON parsing out of the UI, make changes cheap, and enable easy testing later.
+- **Goal:**  
+  Fetch and display upcoming space launches from LL2, show rocket details, and sync select data with Firebase for persistence or analytics.
+
+- **Patterns:**  
+  **MVVM architecture** with `Provider` for dependency injection and state management.  
+  **Repository boundary** integrates both remote (LL2 API) and cloud (Firebase) data sources.
+
+- **Why:**  
+  Keep networking, caching, and JSON parsing separate from the UI.  
+  Enable cloud persistence, offline viewing, and usage tracking through Firebase.
 
 ---
 
 ## Stack
-- Flutter (mobile + web)
-- `provider` for DI/state (`ChangeNotifier`, `ProxyProvider`)
-- `http` for networking
-- `intl` for date formatting
-- Launch Library 2 API (https://ll.thespacedevs.com/2.3.0/)
+- **Flutter** (mobile + web)
+- **Provider** (`ChangeNotifier`, `ProxyProvider`) for state/DI
+- **Firebase** (Firestore + Core + Analytics + Crashlytics)
+- **HTTP** for Launch Library API calls
+- **Intl** for date formatting
+- **Launch Library 2 API** (https://ll.thespacedevs.com/2.3.0/)
 
 ---
 
 ## Architecture
 ```
-[ LL2 API ]
-    ↑ ↓  (HTTP)
-[ Service: LaunchLibraryApi ]   // raw I/O and JSON→Model
-    ↑ ↓
-[ Repository: LaunchRepository ] // app data contract (room for cache/offline)
-    ↑ ↓
-[ ViewModels ]                   // loading/error/data
-    ↑ ↓
-[ Views / Widgets ]              // read/watch via Provider
+[ LL2 API ]  ←→  (HTTP)
+[ Firebase (Firestore/Analytics) ]  ←→  (Cloud Sync)
+          ↑ ↓
+[ Service Layer ]          // ll2_api.dart + firebase_service.dart
+          ↑ ↓
+[ Repository Layer ]       // Combines API + Firebase cache
+          ↑ ↓
+[ ViewModels ]             // Manage loading/error/data state
+          ↑ ↓
+[ Views / Widgets ]        // Bind via Provider (watch/read/select)
 ```
 
 **Rules:**
-- Views never call `http` or parse JSON.
-- ViewModels do not import the HTTP client.
-- Services handle HTTP; Repository is the VM-facing API.
-- Provide dependencies at the app root; typically one VM per screen.
+- **Views** never call HTTP or Firebase directly.  
+- **ViewModels** never import networking or Firebase packages directly.  
+- **Services** handle all I/O; **Repository** mediates between remote and local/cloud sources.  
+- All dependencies are injected via **Provider** in `main.dart`.
 
 ---
 
 ## Folder Layout
 ```
 lib/
-  models/         # LaunchModel, RocketModel
-  services/       # ll2_api.dart (HTTP client)
-  repositories/   # launchRepository.dart
-  viewModels/     # LaunchListVM, LaunchDetailVM
-  views/          # launchListView.dart, launchDetailView.dart
-  widgets/        # launchTileWidget.dart
-  main.dart       # Provider wiring + MaterialApp
+  models/             # LaunchModel, RocketModel, etc.
+  services/           # ll2_api.dart, firebase_service.dart
+  repositories/       # launchRepository.dart
+  viewModels/         # LaunchListVM, LaunchDetailVM
+  views/              # launchListView.dart, launchDetailView.dart
+  widgets/            # launchTileWidget.dart
+  main.dart           # Provider wiring + Firebase init + MaterialApp
 ```
 
 ---
 
-## Setup
+## Firebase Setup
+1. Add to `pubspec.yaml`:
+   ```yaml
+   dependencies:
+     firebase_core: ^3.3.0
+     cloud_firestore: ^5.4.0
+     firebase_analytics: ^11.1.0
+     firebase_crashlytics: ^4.1.0
+   ```
 
-Add dependencies in `pubspec.yaml`:
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  provider: ^6.0.5
-  http: ^1.2.2
-  intl: ^0.19.0
+2. Configure your Firebase project:  
+   - Run `flutterfire configure`  
+   - Verify `firebase_options.dart` exists under `lib/`  
+   - Initialize Firebase in `main.dart` before running the app:
+     ```dart
+     WidgetsFlutterBinding.ensureInitialized();
+     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+     ```
+
+3. Optional: enable offline persistence in Firestore:
+   ```dart
+   FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
+   ```
+
+---
+
+## Updated Repository Layer
+
+The `LaunchRepository` now manages **two data sources**:
+```dart
+class LaunchRepository {
+  final LaunchLibraryApi api;
+  final FirebaseService firebase;
+
+  LaunchRepository(this.api, this.firebase);
+
+  Future<List<LaunchModel>> upcomingLaunches({int limit = 10}) async {
+    final launches = await api.getUpcomingLaunches(limit);
+    await firebase.cacheLaunches(launches); // store summary in Firestore
+    return launches;
+  }
+
+  Future<RocketModel> rocketFor(String configId) async {
+    final rocket = await api.getLauncherConfiguration(configId);
+    await firebase.logRocketViewed(configId);
+    return rocket;
+  }
+}
 ```
 
-Fetch packages:
-```bash
-flutter pub get
+---
+
+## Firebase Service
+
+Example responsibilities:
+- `cacheLaunches(List<LaunchModel>)` → writes lightweight launch data to Firestore  
+- `getCachedLaunches()` → reads local/Firestore cache when offline  
+- `logRocketViewed(String id)` → tracks user interaction for analytics  
+
+---
+
+## Firebase Integration Diagram
+
+```
+        ┌────────────────────────────┐
+        │      LaunchListView        │
+        │ (UI watches ViewModel data)│
+        └─────────────┬──────────────┘
+                      │  notifyListeners()
+                      ▼
+        ┌────────────────────────────┐
+        │     LaunchListVM           │
+        │ (Holds state & triggers)   │
+        └─────────────┬──────────────┘
+                      │  via repository
+                      ▼
+        ┌────────────────────────────┐
+        │    LaunchRepository        │
+        │ (Bridges API + Firebase)   │
+        └─────────────┬──────────────┘
+        ▲             │              ▲
+ (HTTP) │             │ (Cloud sync) │ (Analytics)
+        ▼             ▼              ▼
+┌────────────┐   ┌────────────┐   ┌────────────┐
+│ LL2 API    │   │ Firebase   │   │ Analytics  │
+│ Service    │   │ Firestore  │   │ (optional) │
+└────────────┘   └────────────┘   └────────────┘
 ```
 
 ---
@@ -83,55 +163,33 @@ flutter run
 
 Web (Chrome):
 ```bash
-flutter run -d chrome
-# If you see weird pointer assertions on web:
 flutter run -d chrome --web-renderer canvaskit
 ```
 
----
-
-## Key Files
-
-- **Service:** `lib/services/ll2_api.dart`  
-  - `getUpcomingLaunches(limit)`  
-  - `getLauncherConfiguration(id)`
-
-- **Repository:** `lib/repositories/launchRepository.dart`  
-  - `upcomingLaunches({limit})`  
-  - `rocketFor(rocketConfigId)`
-
-- **ViewModels:**  
-  - `LaunchListVM` loads upcoming launches  
-  - `LaunchDetailVM` loads rocket configuration on demand
-
-- **Views:**  
-  - `launchListView.dart` renders list and navigates to details  
-  - `launchDetailView.dart` shows mission text, local time, rocket info
-
-- **Widgets:**  
-  - `launchTileWidget.dart` thumbnail, name, friendly date
-
-- **App wiring:** `lib/main.dart` (Providers + `MaterialApp`)
+Make sure you have initialized Firebase in the project before running.
 
 ---
 
 ## Troubleshooting
 
 **ProviderNotFoundException**
-- Ensure `MultiProvider` wraps `MaterialApp` in `main.dart`.
-- After adding or changing providers, do a **Hot Restart** (not just hot-reload).
-- Use consistent `package:` imports and consistent folder casing to avoid duplicate types (especially on web).
-- In `initState`, use `context.read<...>()` (not `watch`) to trigger initial loads, often via `Future.microtask`.
+- Verify that `MultiProvider` wraps `MaterialApp` in `main.dart`.
+- After changing providers, perform a **Hot Restart**.
+- Check imports (`package:` paths) to avoid duplicate type instances.
+- Use `context.read()` in `initState` (not `watch`).
 
-**HTTP/JSON errors**
-- Check console output from the service methods for status codes and payloads.
-- LL2 is public; no key is required for basic browsing endpoints.
+**Firebase issues**
+- Make sure `firebase_options.dart` exists.
+- Check that your Google Services config files are present (`google-services.json`, `GoogleService-Info.plist`).
+- Enable the Firestore API in your Firebase console if you use caching.
 
 ---
 
 ## What to Try Next
-- Add a “Next 7 days” filter with `net__gte`/`net__lte`.
-- Implement pagination using LL2’s `next` link.
-- Add basic caching in the repository (e.g., last successful result with an age label).
+- Add offline “recently viewed” launches backed by Firestore cache.  
+- Add Analytics to track most viewed rocket configurations.  
+- Sync user favorites to Firebase.  
+- Add local persistence via `shared_preferences` for lightweight offline mode.  
+- Show a Firebase-backed “Last synced” timestamp in the UI.
 
 ---
