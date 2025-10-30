@@ -1,0 +1,37 @@
+{
+  "@@locale": "es",
+  "appTitle": "Aplicación multilingüe",
+  "homeTitle": "Hola",
+  "welcome": "¡Bienvenido a nuestra aplicación!",
+  "greetUser": "¡Bienvenido, {username}!",
+  "@greetUser": {
+    "description": "Saluda al usuario por su nombre",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "cartItems": "{count, plural, =0{Tu carrito está vacío} =1{Tienes 1 artículo} other{Tienes {count} artículos}}",
+  "@cartItems": {
+    "description": "Muestra cuántos artículos hay en el carrito",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayIs": "Hoy es {date}",
+  "@todayIs": {
+    "description": "Formato de fecha para 'hoy'",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      }
+    }
+  },
+  "chooseLanguage": "Elegir idioma",
+  "resetLanguage": "Predeterminado del sistema",
+  "rtlHint": "Prueba árabe para ver la orientación RTL"
+}

@@ -1,0 +1,37 @@
+{
+  "@@locale": "ar",
+  "appTitle": "تطبيق متعدد اللغات",
+  "homeTitle": "مرحبًا",
+  "welcome": "مرحبًا بك في تطبيقنا!",
+  "greetUser": "مرحبًا، {username}!",
+  "@greetUser": {
+    "description": "تحية المستخدم بالاسم",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "cartItems": "{count, plural, =0{سلة التسوق فارغة} =1{لديك عنصر واحد} other{لديك {count} عناصر}}",
+  "@cartItems": {
+    "description": "عدد العناصر في السلة",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayIs": "اليوم {date}",
+  "@todayIs": {
+    "description": "تنسيق التاريخ لليوم",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMd"
+      }
+    }
+  },
+  "chooseLanguage": "اختر اللغة",
+  "resetLanguage": "إعداد النظام",
+  "rtlHint": "جرّب العربية لترى الاتجاه من اليمين إلى اليسار"
+}
